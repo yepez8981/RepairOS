@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Etiqueta de orden</title>
+  <script>
+    // GAS URL placeholder is replaced in build step; keep existing polyfill in the file
+  </script>
+  <style>
+    :root{ --ink:#0f172a; --muted:#475569; --line:#e5e7eb; }
+    body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:#fafafa;color:var(--ink);margin:0;padding:20px}
+    .card{background:#fff;border:1px solid var(--line);border-radius:16px;max-width:720px;margin:auto;padding:24px;box-shadow:0 6px 20px rgba(0,0,0,.06)}
+    h1{margin:0 0 12px;font-size:20px}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .row{display:flex;gap:10px;align-items:center}
+    .label{font-size:12px;color:var(--muted)}
+    .val{font-size:16px;font-weight:600}
+    .sep{height:1px;background:var(--line);margin:16px 0}
+    .notice{background:#f1f5f9;border:1px dashed #cbd5e1;border-radius:12px;padding:10px;font-size:13px;color:#334155}
+    .btn{display:inline-block;border:1px solid var(--line);padding:10px 12px;border-radius:12px;text-decoration:none;font-weight:700}
+    .qr{width:128px;height:128px;border:1px solid var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+    .qr img{max-width:100%;max-height:100%}
+  </style>
+</head>
+<body>
+  <!-- POLYFILL (kept if present in build); if not, inject minimal one -->
+  <script>
+  if(!(window.google && google.script && google.script.run)){
+    const GAS_EXEC = "https://script.google.com/macros/s/AKfycbygUPMrx-jESQZ2qK_StwCqs2P6188tlIjN-lkfwRlOPw6w7icoBKaEzuxbEDwOBDJBcQ/exec";
+    (function(){
+      const state={ok:null,fail:null};
+      const runner=new Proxy({
+        withSuccessHandler(cb){state.ok=cb;return runner},
+        withFailureHandler(cb){state.fail=cb;return runner}
+      },{get(target,prop){if(prop in target)return target[prop].bind(target);
+        return (...args)=>{
+          fetch(GAS_EXEC,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({fn:prop,args})})
+          .then(r=>r.text()).then(t=>{try{return JSON.parse(t)}catch(e){return {ok:false,raw:t}}})
+          .then(d=>{ if(d && d.ok!==false){state.ok && state.ok(d.result!==undefined?d.result:d)} else {state.fail && state.fail(d.error||d.raw||"RPC error")} });
+        }
+      }});
+      window.google=window.google||{};google.script=google.script||{};google.script.run=runner;
+    })();
+  }
+  </script>
+
+  <div class="card">
+    <h1>Etiqueta de orden</h1>
+    <div id="warn" class="notice" style="display:none"></div>
+    <div class="grid">
+      <div><div class="label">Orden</div><div id="f-order" class="val">-</div></div>
+      <div><div class="label">Cliente</div><div id="f-customer" class="val">-</div></div>
+      <div><div class="label">Teléfono</div><div id="f-phone" class="val">-</div></div>
+      <div><div class="label">Equipo</div><div id="f-device" class="val">-</div></div>
+      <div><div class="label">IMEI/Serie</div><div id="f-imei" class="val">-</div></div>
+      <div><div class="label">Sello</div><div id="f-seal" class="val">-</div></div>
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="row" style="justify-content:space-between">
+      <a id="printBtn" class="btn" href="javascript:void(0)">🖨️ Imprimir</a>
+      <div class="qr" id="qrBox"><span style="font-size:12px;color:#94a3b8">QR</span></div>
+    </div>
+  </div>
+
+  <script>
+    function qsel(id){ return document.getElementById(id); }
+    function set(k,v){ qsel(k).textContent = v||'-'; }
+
+    // Simple QR using Google Chart
+    function setQR(text){
+      const url = 'https://chart.googleapis.com/chart?cht=qr&chs=180x180&chl='+encodeURIComponent(text||'');
+      qsel('qrBox').innerHTML = '<img alt="QR" src="'+url+'">';
+    }
+
+    async function load(){
+      const u = new URL(location.href);
+      const order = u.searchParams.get('order') || u.searchParams.get('label');
+      if(!order){
+        qsel('warn').style.display='block';
+        qsel('warn').textContent='Falta ?order=ORD-...';
+        return;
+      }
+
+      // Preferimos obtener payload JSON y renderizar aquí (sin redirección)
+      google.script.run
+        .withSuccessHandler(function(res){
+          if(!res){
+            qsel('warn').style.display='block';
+            qsel('warn').textContent='Orden no encontrada';
+            return;
+          }
+          // res esperado: { order_id, customer, phone, brand, model, imei, seal, sign_link }
+          set('f-order', res.order_id);
+          set('f-customer', res.customer);
+          set('f-phone', res.phone);
+          set('f-device', [res.brand,res.model].filter(Boolean).join(' '));
+          set('f-imei', res.imei);
+          set('f-seal', res.seal);
+          setQR(res.order_id);
+
+          qsel('printBtn').onclick = function(){ window.print(); };
+        })
+        .withFailureHandler(function(msg){
+          qsel('warn').style.display='block';
+          qsel('warn').textContent='Error: '+msg;
+        })
+        .getLabelPayload(order);
+    }
+    load();
+  </script>
+</body>
+</html>

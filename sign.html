@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Firmar recepción</title>
+  <style>
+    :root{ --ink:#0f172a; --muted:#475569; --line:#e5e7eb; }
+    body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:#fafafa;color:var(--ink);margin:0;padding:20px}
+    .card{background:#fff;border:1px solid var(--line);border-radius:16px;max-width:720px;margin:auto;padding:24px;box-shadow:0 6px 20px rgba(0,0,0,.06)}
+    h1{margin:0 0 12px;font-size:20px}
+    .label{font-size:12px;color:var(--muted)}
+    .val{font-size:16px;font-weight:600}
+    .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    .sep{height:1px;background:var(--line);margin:16px 0}
+    canvas{border:1px solid var(--line);border-radius:12px;background:#fff;width:100%;height:240px}
+    input,button{padding:10px 12px;border-radius:12px;border:1px solid var(--line);font-size:14px}
+    button{font-weight:800;cursor:pointer}
+    .notice{background:#f1f5f9;border:1px dashed #cbd5e1;border-radius:12px;padding:10px;font-size:13px;color:#334155;margin-bottom:12px}
+  </style>
+</head>
+<body>
+  <script>
+  if(!(window.google && google.script && google.script.run)){
+    const GAS_EXEC = "https://script.google.com/macros/s/AKfycbygUPMrx-jESQZ2qK_StwCqs2P6188tlIjN-lkfwRlOPw6w7icoBKaEzuxbEDwOBDJBcQ/exec";
+    (function(){
+      const state={ok:null,fail:null};
+      const runner=new Proxy({
+        withSuccessHandler(cb){state.ok=cb;return runner},
+        withFailureHandler(cb){state.fail=cb;return runner}
+      },{get(target,prop){if(prop in target)return target[prop].bind(target);
+        return (...args)=>{
+          fetch(GAS_EXEC,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({fn:prop,args})})
+          .then(r=>r.text()).then(t=>{try{return JSON.parse(t)}catch(e){return {ok:false,raw:t}}})
+          .then(d=>{ if(d && d.ok!==false){state.ok && state.ok(d.result!==undefined?d.result:d)} else {state.fail && state.fail(d.error||d.raw||"RPC error")} });
+        }
+      }});
+      window.google=window.google||{};google.script=google.script||{};google.script.run=runner;
+    })();
+  }
+  </script>
+
+  <div class="card">
+    <h1>Firma de recepción</h1>
+    <div id="warn" class="notice" style="display:none"></div>
+
+    <div class="row">
+      <div><div class="label">Orden</div><div id="f-order" class="val">-</div></div>
+      <div><div class="label">Cliente</div><div id="f-customer" class="val">-</div></div>
+      <div><div class="label">Equipo</div><div id="f-device" class="val">-</div></div>
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="row">
+      <canvas id="pad" width="700" height="240"></canvas>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <input id="name" placeholder="Nombre de quien firma" style="flex:1" />
+      <button id="clearBtn">Borrar</button>
+      <button id="saveBtn">Guardar firma</button>
+    </div>
+  </div>
+
+  <script>
+    const u = new URL(location.href);
+    const order = u.searchParams.get('order') || u.searchParams.get('sign');
+    const token = u.searchParams.get('t') || u.searchParams.get('token');
+
+    function showWarn(msg){ const w=document.getElementById('warn'); w.style.display='block'; w.textContent=msg; }
+
+    // Load public order info
+    function load(){
+      if(!order || !token){ showWarn('Faltan parámetros (?order/&t=)'); return; }
+      google.script.run
+        .withSuccessHandler(function(res){
+          if(!res){ showWarn('Enlace inválido o expirado'); return; }
+          document.getElementById('f-order').textContent = res.order_id;
+          document.getElementById('f-customer').textContent = res.customer_name;
+          document.getElementById('f-device').textContent = res.device;
+        })
+        .withFailureHandler(function(msg){ showWarn('Error: '+msg); })
+        .getOrderPublic(order, token);
+    }
+
+    // Signature pad
+    (function(){
+      const c = document.getElementById('pad');
+      const ctx = c.getContext('2d');
+      let drawing=false, last=null;
+      function pos(e){
+        if(e.touches && e.touches[0]) e = e.touches[0];
+        const r=c.getBoundingClientRect();
+        return { x:e.clientX - r.left, y:e.clientY - r.top };
+      }
+      function start(e){ drawing=true; last=pos(e); e.preventDefault(); }
+      function move(e){
+        if(!drawing) return;
+        const p=pos(e);
+        ctx.beginPath(); ctx.lineCap='round'; ctx.lineWidth=2; ctx.moveTo(last.x,last.y); ctx.lineTo(p.x,p.y); ctx.stroke();
+        last=p; e.preventDefault();
+      }
+      function end(){ drawing=false; }
+
+      c.addEventListener('mousedown', start);
+      c.addEventListener('mousemove', move);
+      window.addEventListener('mouseup', end);
+      c.addEventListener('touchstart', start, {passive:false});
+      c.addEventListener('touchmove', move, {passive:false});
+      window.addEventListener('touchend', end);
+
+      document.getElementById('clearBtn').onclick = ()=>{ ctx.clearRect(0,0,c.width,c.height); };
+      document.getElementById('saveBtn').onclick = ()=>{
+        const name = document.getElementById('name').value.trim();
+        if(!name){ alert('Escribe el nombre de quien firma'); return; }
+        const dataURL = c.toDataURL('image/png');
+        google.script.run
+          .withSuccessHandler(function(r){
+            if(r && r.ok){ alert('¡Firma guardada!'); location.href = r.url || location.href; }
+            else { alert('No se pudo guardar la firma'); }
+          })
+          .withFailureHandler(function(msg){ alert('Error: '+msg); })
+          .saveSignature(order, token, dataURL, name);
+      };
+    })();
+
+    load();
+  </script>
+</body>
+</html>

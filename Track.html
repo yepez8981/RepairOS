@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title><?= brand.store_name ?> – Seguimiento</title>
+
+<!-- ====== Estilos ====== -->
+<style>
+  :root{
+    --bg:#F5F7FB; --card:#FFFFFF; --ink:#0F172A; --muted:#475569;
+    --pri:<?= brand.primary ?>; --acc:<?= brand.accent ?>; --stroke:#E5E7EB;
+    --ok:#10B981; --warn:#F59E0B; --err:#EF4444;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0; color:var(--ink); background:
+      radial-gradient(1200px 600px at -10% -10%, rgba(14,165,233,.08), transparent 50%),
+      radial-gradient(1200px 600px at 110% 120%, rgba(167,139,250,.08), transparent 50%),
+      var(--bg);
+    font: 15px/1.5 Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  }
+  .wrap{
+    min-height:100%;
+    display:grid; place-items:center; padding:32px 16px;
+  }
+  .card{
+    width:min(820px, 96vw);
+    background:var(--card);
+    border:1px solid var(--stroke);
+    border-radius:18px;
+    box-shadow:0 20px 60px rgba(2,6,23,.10);
+    overflow:hidden;
+  }
+
+  /* Header con marca */
+  .head{
+    display:flex; align-items:center; gap:12px;
+    padding:18px;
+    background:linear-gradient(90deg, var(--pri), var(--acc));
+    color:#fff;
+  }
+  .brand{
+    display:flex; align-items:center; gap:10px;
+    font-weight:900; letter-spacing:.2px;
+  }
+  .brand img{ height:38px; width:auto; border-radius:10px; background:#fff; padding:3px; }
+  .head small{ opacity:.95; font-weight:600; }
+
+  /* Cuerpo */
+  .body{ padding:20px; }
+  .intro{ color:var(--muted); margin:0 0 14px; }
+  label{ display:block; font-weight:800; margin:10px 0 6px; }
+  .grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media (max-width:640px){ .grid{ grid-template-columns:1fr; } }
+
+  input{
+    width:100%; padding:12px 14px; border-radius:12px;
+    border:1px solid var(--stroke); outline:none; background:#fff;
+    transition:.2s border, .2s box-shadow;
+  }
+  input:focus{ border-color:#C7D2FE; box-shadow:0 0 0 3px rgba(14,165,233,.18); }
+
+  .actions{ display:flex; align-items:center; gap:10px; margin-top:10px; }
+  .btn{
+    display:inline-flex; align-items:center; gap:8px; border:0; cursor:pointer;
+    padding:11px 16px; border-radius:12px; font-weight:900; color:#fff;
+    background:linear-gradient(90deg, var(--pri), var(--acc));
+  }
+  .btn.ghost{ background:#EEF2FF; color:#1f2a44; }
+  .btn:disabled{ opacity:.7; cursor:not-allowed; }
+
+  /* Mensajes */
+  .alert{
+    margin-top:12px; padding:10px 12px; border-radius:12px; font-weight:700;
+    border:1px solid var(--stroke); background:#FFF7F7; color:#7F1D1D;
+  }
+  .alert.ok{ background:#ECFDF5; color:#064E3B; border-color:#BBF7D0; }
+  .alert.hint{ background:#F8FAFC; color:#334155; }
+
+  /* Resultado */
+  .result{ margin-top:14px; }
+  .chip{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:6px 10px; border-radius:999px; font-weight:800; font-size:12px;
+    background:#EEF2FF; color:#3730A3;
+  }
+  .chip.st{ background:#F1F5F9; color:#0f172a; }
+  .chip.g{ background:#DCFCE7; color:#065F46; }
+  .chip.y{ background:#FEF9C3; color:#92400E; }
+  .chip.r{ background:#FEE2E2; color:#991B1B; }
+
+  .row{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  @media (max-width:560px){ .row{ grid-template-columns:1fr; } }
+
+  /* Loader */
+  .spinner{
+    width:18px; height:18px; border-radius:999px; border:3px solid #fff; border-right-color:transparent;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  /* Footer */
+  .foot{
+    padding:14px 18px; border-top:1px solid var(--stroke);
+    display:flex; justify-content:space-between; align-items:center; color:var(--muted);
+  }
+  .foot a{ color:inherit; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+
+      <!-- HEADER -->
+      <div class="head">
+        <? if (brand.logo_url) { ?>
+          <img src="<?= brand.logo_url ?>" alt="logo">
+        <? } ?>
+        <div class="brand">
+          <div><?= brand.store_name ?></div>
+          <small>• Seguimiento de orden</small>
+        </div>
+      </div>
+
+      <!-- CUERPO -->
+      <div class="body">
+        <p class="intro">
+          Ingresa tu <b>código de orden</b> y, como verificador, tu <b>correo</b> o los <b>últimos 4 dígitos</b> de tu teléfono.
+        </p>
+
+        <div class="grid">
+          <div>
+            <label for="oid">Código de orden</label>
+            <input id="oid" placeholder="Ej: ORD-20251013-4855" value="<?= prefillOid ?>"/>
+          </div>
+          <div>
+            <label for="ver">Verificador (email o últimos 4 del tel.)</label>
+            <input id="ver" placeholder="correo@ejemplo.com o 1234" value="<?= prefillV ?>"/>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn" id="btn"><span id="btnTxt">🔎 Consultar</span><i class="spinner" id="spin" style="display:none"></i></button>
+          <button class="btn ghost" id="btnClear" type="button">Limpiar</button>
+        </div>
+
+        <div id="msg" class="alert hint" style="display:none"></div>
+        <div id="res" class="result"></div>
+      </div>
+
+      <!-- FOOTER -->
+      <div class="foot">
+        <span>¿No encuentras tu orden? Escríbenos: <b><?= brand.support_email ?></b></span>
+        <a href="mailto:<?= brand.support_email ?>">Contactar soporte</a>
+      </div>
+
+    </div>
+  </div>
+
+<!-- ====== Lógica ====== -->
+<script>
+  const EXEC = '<?= ScriptApp.getService().getUrl() ?>';
+  const $ = id => document.getElementById(id);
+  const btn = $('btn'), spin = $('spin'), btnTxt = $('btnTxt'), msg = $('msg'), res = $('res');
+
+  function setLoading(v){
+    btn.disabled = v;
+    spin.style.display = v ? 'inline-block' : 'none';
+    btnTxt.textContent = v ? 'Consultando…' : '🔎 Consultar';
+  }
+  function showMsg(text, type='hint'){
+    msg.textContent = text;
+    msg.className = 'alert ' + type;
+    msg.style.display = 'block';
+  }
+  function clearMsg(){ msg.style.display = 'none'; }
+  function statusChip(status){
+    const s = (status||'').toLowerCase();
+    let cls = 'st';
+    if (s.includes('listo') || s.includes('entregado')) cls = 'g';
+    else if (s.includes('espera') || s.includes('diagnóstico')) cls = 'y';
+    else if (s.includes('garantía')) cls = 'r';
+    return `<span class="chip ${cls}">Estado: ${status||'—'}</span>`;
+  }
+
+  async function call(fn, args){
+    const r = await fetch(EXEC, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ fn, args })
+    });
+    return r.json();
+  }
+
+  async function doQuery(){
+    clearMsg(); res.innerHTML = '';
+    const oid = ($('oid').value||'').trim();
+    const ver = ($('ver').value||'').trim();
+    if(!oid || !ver){ showMsg('Completa ambos campos.', ''); return; }
+
+    setLoading(true);
+    try{
+      const data = await call('getOrderClient', [oid, ver]);
+      if(!data || data.ok===false){
+        showMsg((data && data.error) ? data.error : 'No se pudo validar.', '');
+        return;
+      }
+      const d = data.data;
+      const when = d.updated_at ? new Date(d.updated_at) : null;
+      const nice = when ? when.toLocaleString() : '—';
+
+      res.innerHTML = `
+        <div style="border:1px solid var(--stroke); border-radius:14px; padding:14px; background:#fff">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px">
+            <span class="chip">Orden ${d.order_id}</span>
+            ${statusChip(d.status)}
+          </div>
+          <div class="row">
+            <div>Cliente: <b>${d.customer_name||'Cliente'}</b></div>
+            <div>Equipo: <b>${d.device||'—'}</b></div>
+            <div>Última actualización: <b>${nice}</b></div>
+            <div></div>
+          </div>
+        </div>`;
+      showMsg('Consulta exitosa. Si necesitas más detalles, responde al correo de recepción.', 'ok');
+    }catch(e){
+      showMsg('Error: ' + (e.message||e), '');
+    }finally{
+      setLoading(false);
+    }
+  }
+
+  // Eventos
+  btn.addEventListener('click', doQuery);
+  $('btnClear').addEventListener('click', ()=>{ $('oid').value=''; $('ver').value=''; clearMsg(); res.innerHTML=''; $('oid').focus(); });
+  ['oid','ver'].forEach(id=> $(id).addEventListener('keydown', e=>{ if(e.key==='Enter') doQuery(); }));
+
+  // Autoconsulta si viene oid & v en la URL (?track=1&oid=...&v=...)
+  (function auto(){
+    const a = (new URL(location.href)).searchParams;
+    const oid = a.get('oid')||''; const v = a.get('v')||'';
+    if (oid) $('oid').value = oid;
+    if (v)   $('ver').value = v;
+    if (oid && v){ setTimeout(()=> btn.click(), 50); }
+  })();
+</script>
+</body>
+</html>

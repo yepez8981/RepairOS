@@ -1,0 +1,15 @@
+# Solución a "Failed to fetch"
+
+1) En Apps Script, reimplementa/asegura este router:
+   - doPost(e): parsea JSON (o text) y ejecuta la función p.fn con p.args
+   - doGet(e): opcional, para lecturas simples (?fn=...&args=[...])
+
+2) Despliega la Web App en:
+   - Ejecutar como: Tú
+   - Quién tiene acceso: Cualquiera con el enlace
+
+3) Evita preflight CORS:
+   - El polyfill ahora usa Content-Type: text/plain
+
+4) Si sigue fallando:
+   - Abre la consola del navegador y copia el 'raw' o 'status' del error.
