@@ -427,7 +427,6 @@
       <button class="rf-item rf-tip" data-proxy="#openPayments" data-tip="Pagos & Caja"><span class="ic">💼</span><span class="lbl">Pagos & Caja</span></button>
       <button class="rf-item rf-tip" data-proxy="#openSales" data-tip="Libro / CxC"><span class="ic">📚</span><span class="lbl">Libro / CxC</span></button>
       <button class="rf-item rf-tip" data-proxy="#openComms" data-tip="Comisiones"><span class="ic">%</span><span class="lbl">Comisiones</span></button>
-      <button class="rf-item rf-tip" data-proxy="#openLoyal" data-tip="Cliente frecuente"><span class="ic">👥</span><span class="lbl">Cliente frecuente</span></button>
       <button class="rf-item rf-tip" data-proxy="#openTechs" data-tip="Técnicos"><span class="ic">🧑‍🔧</span><span class="lbl">Técnicos</span></button>
       <button class="rf-item rf-tip" data-proxy="#openClient" data-tip="Consulta (cliente)"><span class="ic">🔎</span><span class="lbl">Consulta (cliente)</span></button>
     </div>
@@ -858,45 +857,100 @@
   </div>
 </div>
 
-<!-- ===== Consulta pública (Cliente) ===== -->
+<!-- Modal: Seguimiento de clientes (Próximamente) -->
 <div class="modal" id="modalClient">
   <div class="overlay" data-close="modalClient"></div>
   <div class="sheet">
     <header>
-      <b>Seguimiento para clientes</b>
+      <b>Seguimiento de clientes</b>
       <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-        <button class="btn ghost" id="btnCopyTrack" type="button">🔗 Copiar enlace</button>
+        <button class="btn ghost" id="btnCopyTrack" type="button" disabled title="Próximamente">
+          🔗 Copiar enlace
+        </button>
         <button class="x" data-close="modalClient">✕</button>
       </div>
     </header>
-    <div class="body">
-      <div class="grid">
-        <div class="col-6">
-          <label>Código de orden</label>
-          <input id="c_order" placeholder="ORD-YYYYMMDD-####" />
-        </div>
-        <div class="col-6">
-          <label>Verificación</label>
-          <input id="c_verifier" placeholder="Últimos 4 del teléfono o email completo" />
-          <div class="muted">Por seguridad, pedimos verificación.</div>
-        </div>
-        <div class="col-12" style="display:flex; align-items:flex-end; gap:8px; margin-top:4px;">
-          <button id="btnClientQuery" class="btn" type="button">🔎 Consultar</button>
-          <div id="c_msg" class="muted"></div>
-        </div>
 
-        <div class="col-12 card" id="c_result" style="display:none">
-          <div style="display:flex;gap:10px;align-items:center;margin-bottom:6px">
-            <span class="tag" id="c_tagOrder"></span>
-            <span class="tag" id="c_tagStatus"></span>
-          </div>
-          <div id="c_meta" class="muted" style="margin-bottom:6px"></div>
-          <div id="c_updated" class="muted"></div>
+    <!-- Aviso de disponibilidad (forzado en blanco) -->
+    <div class="notice soon" role="status" aria-live="polite">
+      <span class="badge">Próximamente</span>
+      <div class="notice-text">
+        Estamos terminando esta función para <b>clientes</b> y <b>tiendas</b>. 
+        Muy pronto podrás:
+        <ul class="soon-list">
+          <li>Compartir un <b>enlace de seguimiento</b> con tu cliente.</li>
+          <li>Ver <b>estado en tiempo real</b> y <b>historial</b> desde el panel.</li>
+          <li>Activar/pausar el seguimiento por orden o por cliente.</li>
+        </ul>
+        <div class="soon-foot">
+          💡 En cuanto se libere la update, habilitaremos el botón <em>“Copiar enlace”</em> automáticamente.
         </div>
       </div>
     </div>
+
+    <!-- Contenido real (oculto hasta el lanzamiento) -->
+    <div class="col-12 card" id="c_result" style="display:none">
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:6px">
+        <span class="tag" id="c_tagOrder"></span>
+        <span class="tag" id="c_tagStatus"></span>
+      </div>
+      <div id="c_meta" class="muted" style="margin-bottom:6px"></div>
+      <div id="c_updated" class="muted"></div>
+    </div>
   </div>
 </div>
+
+<style>
+  /* ===== Aviso Próximamente (siempre en BLANCO) ===== */
+  .notice.soon{
+    display:flex; gap:12px; align-items:flex-start;
+    background:#ffffff !important;
+    border:1px solid #e5e7eb !important;
+    color:#0f172a !important;
+    padding:14px 16px; border-radius:12px; margin:12px 0 6px;
+    box-shadow: 0 6px 22px rgba(0,0,0,.08);
+  }
+  .notice.soon .badge{
+    flex:0 0 auto; font-size:12px; font-weight:800; letter-spacing:.2px;
+    padding:5px 9px; border-radius:999px;
+    background:#eef2ff !important; color:#3730a3 !important; border:1px solid #e0e7ff !important;
+  }
+  .notice.soon .notice-text{ font-size:13.5px; line-height:1.5; }
+  .soon-list{
+    margin:8px 0 0 0; padding-left:18px;
+  }
+  .soon-list li{ margin:4px 0; }
+  .soon-foot{
+    margin-top:8px; font-size:12.5px; color:#475569;
+  }
+
+  /* Botón deshabilitado “ghost” */
+  .btn[disabled]{ opacity:.6; cursor:not-allowed; }
+
+  /* (Opcional) micro animación sutil para la badge */
+  @keyframes pulse-soft {
+    0% { box-shadow: 0 0 0 0 rgba(55,48,163,.28); }
+    100% { box-shadow: 0 0 0 12px rgba(55,48,163,0); }
+  }
+  .notice.soon .badge{ animation: pulse-soft 1.8s ease-out infinite; }
+</style>
+
+<script>
+  // Flag simple por si luego habilitas la función
+  const FEATURE_TRACKING_ENABLED = false;
+
+  (function(){
+    const copyBtn = document.getElementById('btnCopyTrack');
+    const result  = document.getElementById('c_result');
+    const soon    = document.querySelector('.notice.soon');
+
+    if (FEATURE_TRACKING_ENABLED) {
+      soon?.remove();
+      copyBtn.removeAttribute('disabled');
+      result.style.display = '';
+    }
+  })();
+</script>
 
 <!-- ===== i18n ===== -->
 <script>
@@ -2835,5 +2889,6 @@
   });
 })();
 </script>
+
 </body>
 </html>
