@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>RepairOS</title>
 
 <script>
@@ -269,6 +270,44 @@
     width:min(560px,90vw); margin:10vh auto 0; padding:18px;
     box-shadow:0 20px 60px rgba(0,0,0,.35);
   }
+/* ======= FIXES MOBILE / RESPONSIVE ======= */
+/* Contenedor principal flexible y sin recortes horizontales */
+.rf-shell{ display:flex; min-height:100dvh; }
+.rf-main{ flex:1 1 auto; min-width:0; overflow-x:hidden; }
+
+/* Sidebar: alto correcto en desktop y oculto en móvil */
+.rf-sidebar{ height:calc(100dvh - 64px); }
+@media (max-width:1100px){
+  .rf-sidebar{ display:none; position:static; height:auto; }
+  .rf-main{ padding-left:0; }
+}
+
+/* Topbar en columna cuando la pantalla es angosta */
+@media (max-width:700px){
+  .header-inner{ flex-direction:column; align-items:flex-start; gap:8px; }
+  .brand{ flex:0 0 auto; }
+  .header-actions{ width:100%; justify-content:flex-end; flex-wrap:wrap; }
+}
+
+/* Tarjetas y botones ocupan todo el ancho en móvil */
+@media (max-width:700px){
+  .wrap{ width:94%; margin:16px auto 24px; }
+  .card{ margin:12px 0; }
+  .btn{ flex:1 1 100%; }
+}
+
+/* Grids seguros (KPI apilan a una columna) */
+@media (max-width:700px){
+  .grid{ grid-template-columns:repeat(12,1fr); }
+  .col-4, .col-6, .col-8{ grid-column:span 12; }
+  .kpi .value{ font-size:clamp(22px,6vw,32px); }
+}
+
+/* Modales: usa unidades dinámicas para el alto real del viewport */
+.sheet{ max-height:86dvh; }
+
+/* Evitar scroll lateral fantasma */
+html, body{ overflow-x:hidden; }  
 </style>
 
 <style>
