@@ -250,7 +250,7 @@
     .sheet{ width:100%; max-height:none; border:0; box-shadow:none; }
     body{ background:#fff; color:#000; }
   }
-    .maint-banner{
+  .maint-banner{
     display:none; position:sticky; top:0; z-index:60;
     background:#FEF3C7; color:#92400E; border:1px solid #FDE68A;
     padding:10px 12px; font-weight:800; text-align:center;
@@ -272,7 +272,6 @@
   }
 
 /* ======= FIXES MOBILE / RESPONSIVE ======= */
-/* Contenedor principal flexible y sin recortes horizontales */
 .rf-shell{ display:flex; min-height:100dvh; }
 .rf-main{ flex:1 1 auto; min-width:0; overflow-x:hidden; }
 
@@ -371,7 +370,6 @@ html, body{ overflow-x:hidden; }
 .toolbar-row{ display:none !important; }
 </style>
 
-
 <style>
 /* ====== PRO LAYOUT POLISH ====== */
 
@@ -425,11 +423,67 @@ html, body{ overflow-x:hidden; }
 .card.kpi{ border-radius:16px; border:1px solid var(--stroke); background:var(--card); }
 .kpi .value{ font-weight:900; font-size:32px; }
 
-/* Dark table header polish */
 [data-theme="dark"] thead{ background:#0B0E13!important; }
 [data-theme="dark"] th{ color:#C8CCD2!important; }
 </style>
 
+<!-- ============ ANIMACIONES PRO DEL RAIL ============ -->
+<style>
+@keyframes railIn {
+  from { transform: translateX(-24px); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+.rf-sidebar{
+  animation: railIn .45s ease-out both;
+  transition: width .22s ease, box-shadow .22s ease;
+}
+/* Expansión + labels sólo en desktop */
+@media (hover:hover) and (pointer:fine){
+  .rf-sidebar:hover{
+    width: 220px !important;
+    box-shadow: 0 10px 30px rgba(2,6,23,.10);
+  }
+  .rf-sidebar:hover .rf-item .lbl{
+    display:inline-block !important;
+    opacity:1; transform: translateX(0);
+  }
+  .rf-item .lbl{
+    display:none; opacity:0; transform: translateX(-6px);
+    transition: opacity .18s ease, transform .18s ease;
+  }
+}
+/* Micro elevación */
+.rf-item{
+  transition: transform .14s ease, box-shadow .14s ease, background .14s ease;
+}
+.rf-item:hover{
+  transform: translateY(-1px);
+  background: rgba(2,6,23,.05);
+}
+/* Indicador activo */
+.rf-sidebar{ position: relative; }
+.rf-indicator{
+  position:absolute; left:8px; width:4px; height:38px; top:12px;
+  border-radius:999px; background:linear-gradient(180deg,#22c55e,#16a34a);
+  box-shadow: 0 6px 16px rgba(34,197,94,.35);
+  transition: top .22s cubic-bezier(.2,.8,.2,1);
+  pointer-events:none; opacity:.95;
+}
+/* Ripple */
+.rf-item{ overflow:hidden; position:relative; }
+.rf-item::before{
+  content:""; position:absolute; width:8px; height:8px; border-radius:50%;
+  left:var(--rx,50%); top:var(--ry,50%);
+  transform: translate(-50%,-50%) scale(0);
+  background: currentColor; opacity:.12;
+}
+.rf-item.rippling::before{
+  animation: ripple .45s ease-out forwards;
+}
+@keyframes ripple{
+  to { transform: translate(-50%,-50%) scale(16); opacity:0; }
+}
+</style>
 </head>
 <body>
 
@@ -2938,6 +2992,53 @@ html, body{ overflow-x:hidden; }
   });
 })();
 </script>
+  <script>
+  (function(){
+    const rail = document.querySelector('.rf-sidebar');
+    if(!rail) return;
+
+    // Crea el indicador si no existe
+    let ind = rail.querySelector('.rf-indicator');
+    if(!ind){
+      ind = document.createElement('i');
+      ind.className = 'rf-indicator';
+      rail.appendChild(ind);
+    }
+
+    const items = Array.from(rail.querySelectorAll('.rf-item'));
+    const moveIndicator = (el) => {
+      if(!el) return;
+      const railRect = rail.getBoundingClientRect();
+      const r = el.getBoundingClientRect();
+      const top = (r.top - railRect.top) + (r.height - 38)/2;
+      ind.style.top = `${Math.max(12, top)}px`;
+    };
+
+    // Set inicial al activo o primero
+    moveIndicator(rail.querySelector('.rf-item.active') || items[0]);
+
+    // Click: activa + ripple
+    rail.addEventListener('click', (e)=>{
+      const btn = e.target.closest('.rf-item');
+      if(!btn) return;
+
+      items.forEach(i=>i.classList.remove('active'));
+      btn.classList.add('active');
+      moveIndicator(btn);
+
+      const rect = btn.getBoundingClientRect();
+      btn.style.setProperty('--rx', (e.clientX - rect.left) + 'px');
+      btn.style.setProperty('--ry', (e.clientY - rect.top) + 'px');
+      btn.classList.remove('rippling');
+      void btn.offsetWidth; // reflow
+      btn.classList.add('rippling');
+      setTimeout(()=>btn.classList.remove('rippling'), 450);
+    });
+
+    // Recalcular al redimensionar
+    window.addEventListener('resize', ()=> moveIndicator(rail.querySelector('.rf-item.active')));
+  })();
+  </script>
 
 </body>
 </html>
