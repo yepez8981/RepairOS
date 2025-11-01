@@ -428,8 +428,34 @@ html, body{ overflow-x:hidden; }
 /* Dark table header polish */
 [data-theme="dark"] thead{ background:#0B0E13!important; }
 [data-theme="dark"] th{ color:#C8CCD2!important; }
+  .rf-item.active {
+  background: rgba(34,197,94,0.1);
+  border-color: rgba(34,197,94,0.4);
+  box-shadow: inset 0 0 0 2px rgba(34,197,94,0.15);
+}
 </style>
 </head>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  // Manejador de clics en la barra lateral
+  document.querySelectorAll(".rf-item[data-proxy]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const proxySelector = btn.getAttribute("data-proxy");
+      const proxyBtn = document.querySelector(proxySelector);
+      if (proxyBtn) {
+        proxyBtn.click(); // Dispara el botón real
+      } else {
+        console.warn("No se encontró el botón proxy:", proxySelector);
+      }
+
+      // Actualiza el estado activo visualmente
+      document.querySelectorAll(".rf-item").forEach(i => i.classList.remove("active"));
+      btn.classList.add("active");
+    });
+  });
+});
+</script>
+
 <body>
 
 <div id="maintBanner" class="maint-banner"></div>
