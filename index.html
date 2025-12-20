@@ -1204,12 +1204,16 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   })();
 </script>
+<!-- ✅ 1) Tom Select (buscador) - pega UNA SOLA VEZ en tu HTML (ideal en <head> o antes de </body>) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css">
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+
 <script>
 (function () {
   const SELECT_ID = "inv_curr";
-  const STORAGE_KEY = "settings.inv_curr"; // cámbialo si ya usas otro namespace
+  const INIT_FLAG = "data-curr-inited";
+  const STORAGE_KEY = "settings.inv_curr"; // si quieres por tienda: `settings.inv_curr.${storeId}`
 
-  // Monedas “importantes” 
   const PINNED = [
     { code: "COP", label: "COP — colombia"  },
     { code: "USD", label: "USD — internacional" },
@@ -1225,7 +1229,6 @@ document.addEventListener("DOMContentLoaded", () => {
   function safeGetSavedCurrency() {
     try { return localStorage.getItem(STORAGE_KEY); } catch { return null; }
   }
-
   function safeSaveCurrency(value) {
     try { localStorage.setItem(STORAGE_KEY, value); } catch {}
   }
@@ -1239,7 +1242,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function getCurrencyLabeler() {
     try {
-      // Español (puedes cambiar a "es-PE")
       const dn = new Intl.DisplayNames(["es"], { type: "currency" });
       return (code) => {
         const name = dn.of(code);
@@ -1251,51 +1253,92 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function getAllCurrencies() {
-    // Mejor caso: todas las monedas soportadas por el runtime del navegador
     if (typeof Intl !== "undefined" && typeof Intl.supportedValuesOf === "function") {
-      try {
-        return Intl.supportedValuesOf("currency"); // array de códigos ISO (ej: "UYU")
-      } catch {}
+      try { return Intl.supportedValuesOf("currency"); } catch {}
     }
-    // Fallback si el navegador es viejo (lista básica)
     return ["COP","USD","UYU","PEN","EUR","ARS","BRL","CLP","MXN","GBP","JPY","CNY","CAD","AUD","CHF"];
   }
 
-  document.addEventListener("DOMContentLoaded", () => {
-    const sel = document.getElementById(SELECT_ID);
-    if (!sel) return;
+  function ensureTomSelect(sel) {
+    // ✅ si ya está creado, no lo vuelvas a crear
+    if (sel.tomselect) return sel.tomselect;
+
+    return new TomSelect(sel, {
+      create: false,
+      sortField: [{ field: "pinned", direction: "desc" }, { field: "text", direction: "asc" }],
+      searchField: ["text", "value"],
+      maxOptions: 1000,
+      placeholder: "Buscar moneda…",
+      allowEmptyOption: false,
+      render: {
+        option: function (data, escape) {
+          // ✅ look limpio, pinned resaltado suave
+          const badge = data.pinned ? `<span style="opacity:.75;margin-left:8px;font-size:12px;">★</span>` : "";
+          return `<div>${escape(data.text)}${badge}</div>`;
+        },
+        item: function (data, escape) {
+          return `<div>${escape(data.text)}</div>`;
+        }
+      }
+    });
+  }
+
+  function initCurrencySelect(sel) {
+    if (!sel || sel.getAttribute(INIT_FLAG) === "1") return;
+    sel.setAttribute(INIT_FLAG, "1");
 
     const label = getCurrencyLabeler();
     const all = getAllCurrencies();
 
-    // Guardar selección actual si había algo (para no romper flujos)
     const previouslySelected = sel.value || safeGetSavedCurrency() || "COP";
 
-    // Limpiamos y repoblamos
+    // Limpia opciones
     sel.innerHTML = "";
 
-    // 1) Pinned primero (sin duplicados)
+    // 1) pinned
     const used = new Set();
     for (const p of PINNED) {
       if (!p.code) continue;
+      if (used.has(p.code)) continue;
       used.add(p.code);
       sel.appendChild(buildOption(p.code, p.label));
     }
 
-    // 2) Resto de monedas (ordenadas)
+    // 2) resto
     const rest = all.filter(c => c && !used.has(c)).sort((a,b) => a.localeCompare(b));
-    for (const code of rest) {
-      sel.appendChild(buildOption(code, label(code)));
-    }
+    for (const code of rest) sel.appendChild(buildOption(code, label(code)));
 
-    // 3) Restaurar guardado (si existe en la lista)
+    // 3) restaurar
     const exists = Array.from(sel.options).some(o => o.value === previouslySelected);
     sel.value = exists ? previouslySelected : "COP";
     safeSaveCurrency(sel.value);
 
-    // 4) Guardar cada vez que cambie
-    sel.addEventListener("change", () => safeSaveCurrency(sel.value));
-  });
+    // 4) activar buscador (TomSelect)
+    const ts = ensureTomSelect(sel);
+
+    // ✅ marcar pinned para que ordene arriba
+    for (const p of PINNED) {
+      if (ts.options[p.code]) ts.options[p.code].pinned = true;
+    }
+    ts.refreshOptions(false);
+
+    // ✅ set value sin romper
+    ts.setValue(sel.value, true);
+
+    // 5) guardar cambios
+    ts.on("change", (v) => safeSaveCurrency(v));
+  }
+
+  function findAndInit() {
+    const sel = document.getElementById(SELECT_ID);
+    if (sel) initCurrencySelect(sel);
+  }
+
+  document.addEventListener("DOMContentLoaded", findAndInit);
+
+  // Por si el select aparece después (modal / SPA)
+  const mo = new MutationObserver(() => findAndInit());
+  mo.observe(document.documentElement, { childList: true, subtree: true });
 })();
 </script>
 
