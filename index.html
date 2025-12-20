@@ -1209,17 +1209,17 @@ document.addEventListener("DOMContentLoaded", () => {
   const SELECT_ID = "inv_curr";
   const STORAGE_KEY = "settings.inv_curr"; // cámbialo si ya usas otro namespace
 
-  // Monedas “importantes” arriba (UYU incluida)
+  // Monedas “importantes” 
   const PINNED = [
-    { code: "COP", label: "COP — Colombia"  },
-    { code: "USD", label: "USD — Internacional" },
-    { code: "UYU", label: "UYU — Uruguay" },
+    { code: "COP", label: "COP — colombia"  },
+    { code: "USD", label: "USD — internacional" },
+    { code: "UYU", label: "UYU — uruguay" },
     { code: "PEN", label: "PEN — (S/)" },
     { code: "EUR", label: "EUR — (€)" },
-    { code: "ARS", label: "ARS — Argentina" },
-    { code: "BRL", label: "BRL — Brasil" },
-    { code: "CLP", label: "CLP — Chile" },
-    { code: "MXN", label: "MXN — Mexico" }
+    { code: "ARS", label: "ARS — argentina" },
+    { code: "BRL", label: "BRL — brasil" },
+    { code: "CLP", label: "CLP — chile" },
+    { code: "MXN", label: "MXN — mexico" }
   ];
 
   function safeGetSavedCurrency() {
