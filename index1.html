@@ -988,7 +988,15 @@ document.addEventListener("DOMContentLoaded", () => {
     <div class="body">
       <div class="grid">
         <div class="col-4"><label data-i18n="lbl_order">Orden</label><input id="inv_order" placeholder="ORD-..." /></div>
-        <div class="col-4"><label data-i18n="lbl_currency">Moneda</label><select id="inv_curr"><option value="COP">COP (local)</option><option value="USD">USD</option></select></div>
+        <div class="col-4">
+  <label data-i18n="lbl_currency">Moneda</label>
+  <select id="inv_curr">
+    <!-- Fallback por si el JS no corre -->
+    <option value="COP">COP (Colombia)</option>
+    <option value="USD">USD (Internacional)</option>
+    <option value="UYU">UYU (Uruguay)</option>
+  </select>
+</div>
         <div class="col-4"><label data-i18n="lbl_tax">Impuesto (%)</label><input id="inv_tax" type="number" min="0" step="0.01" value="0"/></div>
         <div class="col-6"><label data-i18n="lbl_seller">Vendedor</label><select id="inv_seller"></select></div>
         <div class="col-6"><label data-i18n="lbl_tech">Técnico</label><select id="inv_tech"></select></div>
@@ -1195,6 +1203,100 @@ document.addEventListener("DOMContentLoaded", () => {
       result.style.display = '';
     }
   })();
+</script>
+<script>
+(function () {
+  const SELECT_ID = "inv_curr";
+  const STORAGE_KEY = "settings.inv_curr"; // cámbialo si ya usas otro namespace
+
+  // Monedas “importantes” arriba (UYU incluida)
+  const PINNED = [
+    { code: "COP", label: "COP (local)" },
+    { code: "USD", label: "USD" },
+    { code: "UYU", label: "UYU (Uruguay)" },
+    { code: "PEN", label: "PEN (S/)" },
+    { code: "EUR", label: "EUR (€)" },
+    { code: "ARS", label: "ARS" },
+    { code: "BRL", label: "BRL" },
+    { code: "CLP", label: "CLP" },
+    { code: "MXN", label: "MXN" }
+  ];
+
+  function safeGetSavedCurrency() {
+    try { return localStorage.getItem(STORAGE_KEY); } catch { return null; }
+  }
+
+  function safeSaveCurrency(value) {
+    try { localStorage.setItem(STORAGE_KEY, value); } catch {}
+  }
+
+  function buildOption(value, text) {
+    const opt = document.createElement("option");
+    opt.value = value;
+    opt.textContent = text;
+    return opt;
+  }
+
+  function getCurrencyLabeler() {
+    try {
+      // Español (puedes cambiar a "es-PE")
+      const dn = new Intl.DisplayNames(["es"], { type: "currency" });
+      return (code) => {
+        const name = dn.of(code);
+        return name && name !== code ? `${code} — ${name}` : code;
+      };
+    } catch {
+      return (code) => code;
+    }
+  }
+
+  function getAllCurrencies() {
+    // Mejor caso: todas las monedas soportadas por el runtime del navegador
+    if (typeof Intl !== "undefined" && typeof Intl.supportedValuesOf === "function") {
+      try {
+        return Intl.supportedValuesOf("currency"); // array de códigos ISO (ej: "UYU")
+      } catch {}
+    }
+    // Fallback si el navegador es viejo (lista básica)
+    return ["COP","USD","UYU","PEN","EUR","ARS","BRL","CLP","MXN","GBP","JPY","CNY","CAD","AUD","CHF"];
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const sel = document.getElementById(SELECT_ID);
+    if (!sel) return;
+
+    const label = getCurrencyLabeler();
+    const all = getAllCurrencies();
+
+    // Guardar selección actual si había algo (para no romper flujos)
+    const previouslySelected = sel.value || safeGetSavedCurrency() || "COP";
+
+    // Limpiamos y repoblamos
+    sel.innerHTML = "";
+
+    // 1) Pinned primero (sin duplicados)
+    const used = new Set();
+    for (const p of PINNED) {
+      if (!p.code) continue;
+      used.add(p.code);
+      sel.appendChild(buildOption(p.code, p.label));
+    }
+
+    // 2) Resto de monedas (ordenadas)
+    const rest = all.filter(c => c && !used.has(c)).sort((a,b) => a.localeCompare(b));
+    for (const code of rest) {
+      sel.appendChild(buildOption(code, label(code)));
+    }
+
+    // 3) Restaurar guardado (si existe en la lista)
+    const exists = Array.from(sel.options).some(o => o.value === previouslySelected);
+    sel.value = exists ? previouslySelected : "COP";
+    safeSaveCurrency(sel.value);
+
+    // 4) Guardar cada vez que cambie
+    sel.addEventListener("change", () => safeSaveCurrency(sel.value));
+  });
+})();
 </script>
 
 <!-- ===== i18n ===== -->
